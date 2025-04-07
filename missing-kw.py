@@ -3,22 +3,22 @@ import pandas as pd
 import re
 from io import BytesIO
 
-# Configuration de la page en pleine largeur
+# Page configuration in full width
 st.set_page_config(
-    page_title="Analyseur SEO - Opportunités de mots clés",
+    page_title="SEO Analyzer - Keyword Opportunities",
     page_icon="🎯",
     layout="wide"
 )
 
-# Style CSS personnalisé
+# Custom CSS style
 st.markdown("""
     <style>
-    /* Layout principal */
+    /* Main layout */
 .main {
     padding: 0rem 1rem;
 }
 
-/* Barre latérale */
+/* Sidebar */
 .stSidebar {
     background-color: #f5f5f0;
     padding: 2rem 1rem;
@@ -34,7 +34,7 @@ st.markdown("""
     margin-bottom: 2rem;
 }
 
-/* Conteneur de tableau de données */
+/* Dataframe container */
 .dataframe-container {
     max-height: 700px;
     overflow-y: auto;
@@ -45,7 +45,7 @@ st.markdown("""
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* Conteneur des cartes de totaux */
+/* Totals cards container */
 .totals-container {
     display: flex;
     flex-direction: row;
@@ -56,7 +56,7 @@ st.markdown("""
     width: 100%;
 }
 
-/* Style des cartes de totaux */
+/* Totals cards style */
 .totals-card {
     background-color: #f8f9fa;
     padding: 1.5rem;
@@ -76,7 +76,7 @@ st.markdown("""
     box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Titres et textes dans les cartes */
+/* Titles and text in cards */
 .totals-card h3 {
     font-size: 1.3rem;
     margin-bottom: 0.5rem;
@@ -94,7 +94,7 @@ st.markdown("""
     word-wrap: break-word;
 }
 
-/* Style des filtres */
+/* Filter style */
 .filter-container {
     background-color: #f8f9fa;
     padding: 1rem;
@@ -102,7 +102,7 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 
-/* Style des boutons */
+/* Button style */
 .stButton>button {
     width: 100%;
     background-color: #79c39e;
@@ -118,20 +118,20 @@ st.markdown("""
     background-color: #68b08d;
 }
 
-/* Style des inputs */
+/* Input style */
 .stTextInput>div>div>input {
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     padding: 0.5rem;
 }
 
-/* Style des select multiples */
+/* Multi select style */
 .stMultiSelect>div>div>div {
     border: 1px solid #e0e0e0;
     border-radius: 4px;
 }
 
-/* Style des tableaux */
+/* Table style */
 .dataframe {
     width: 100%;
     border-collapse: collapse;
@@ -154,23 +154,23 @@ st.markdown("""
     background-color: #f8f9fa;
 }
 
-/* Style des messages d'erreur et d'avertissement */
+/* Error and warning message style */
 .stAlert {
     padding: 1rem;
     border-radius: 8px;
     margin: 1rem 0;
 }
 
-/* Media queries pour la responsivité */
+/* Media queries for responsiveness */
 @media screen and (max-width: 768px) {
     .totals-container {
         flex-direction: column;
     }
-    
+
     .totals-card {
         flex: 1 1 100%;
     }
-    
+
     .dataframe-container {
         max-height: 500px;
     }
@@ -194,21 +194,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Liste pour stocker les logs
+# List to store logs
 global_logs = []
+
 
 def log_message(message):
     global global_logs
     global_logs.append(message)
 
-# Fonction pour afficher les logs dans un onglet séparé
+
+# Function to display logs in a separate tab
 def display_logs():
-    st.subheader("📋 Logs de l'application")
+    st.subheader("📋 Application Logs")
     for log in global_logs:
         st.write(log)
 
+
 def load_semrush_positions(file):
-    log_message(f"Chargement du fichier des positions : {file.name}")
+    log_message(f"Loading position file: {file.name}")
     try:
         df = pd.read_csv(file, sep=';')
         column_mapping = {
@@ -218,7 +221,7 @@ def load_semrush_positions(file):
         }
         df = df.rename(columns=column_mapping)
 
-        # Ajout de la colonne des tranches de positions
+        # Adding position range column
         def categorize_position(position):
             if 1 <= position <= 3:
                 return "1-3"
@@ -231,9 +234,9 @@ def load_semrush_positions(file):
             elif 51 <= position <= 100:
                 return "51-100"
             else:
-                return "Autre"
+                return "Other"
 
-        # Ajout de la colonne des tranches de Keyword Difficulty
+        # Adding Keyword Difficulty range column
         def categorize_keyword_difficulty(kd):
             if 0 <= kd <= 15:
                 return "0-15"
@@ -250,74 +253,79 @@ def load_semrush_positions(file):
             elif kd > 65:
                 return ">65"
             else:
-                return "Inconnu"
+                return "Unknown"
 
         df['Position Range'] = df['Position'].apply(categorize_position)
         df['Keyword Difficulty Range'] = df['Keyword Difficulty'].apply(categorize_keyword_difficulty)
 
-        log_message(f"Fichier chargé avec {len(df)} lignes et {len(df.columns)} colonnes.")
+        log_message(f"File loaded with {len(df)} rows and {len(df.columns)} columns.")
         return df
     except Exception as e:
-        st.error(f"Erreur lors du chargement des positions : {str(e)}")
-        log_message(f"Erreur : {str(e)}")
+        st.error(f"Error loading positions: {str(e)}")
+        log_message(f"Error: {str(e)}")
         return pd.DataFrame()
+
 
 def load_multiple_semrush_ideas(files):
     if not files:
-        st.warning("Aucun fichier d'idées fourni.")
+        st.warning("No idea files provided.")
         return pd.DataFrame()
 
     all_ideas = []
 
     for file in files:
         try:
-            log_message(f"Chargement du fichier d'idées : {file.name}")
+            log_message(f"Loading idea file: {file.name}")
             df = pd.read_csv(BytesIO(file.getvalue()), sep=';')
             df['Source'] = file.name
             all_ideas.append(df)
         except Exception as e:
-            st.error(f"Erreur lors du chargement de {file.name} : {str(e)}")
+            st.error(f"Error loading {file.name}: {str(e)}")
 
     combined_df = pd.concat(all_ideas, ignore_index=True)
 
-    # Suppression des doublons
+    # Removing duplicates
     before_dedup = len(combined_df)
     combined_df = combined_df.drop_duplicates(subset='Keyword', keep='first')
     after_dedup = len(combined_df)
 
-    log_message(f"Fichiers combinés avec {before_dedup} lignes avant déduplication et {after_dedup} lignes après suppression des doublons.")
+    log_message(
+        f"Files combined with {before_dedup} rows before deduplication and {after_dedup} rows after removing duplicates.")
 
     return combined_df
 
+
 def find_missing_keywords(positions_df, ideas_df):
     try:
-        log_message("Recherche des mots clés manquants...")
+        log_message("Searching for missing keywords...")
         positions_keywords = set(positions_df['Keyword'].str.lower())
         ideas_keywords = set(ideas_df['Keyword'].str.lower())
         missing_keywords = ideas_keywords - positions_keywords
 
         missing_df = ideas_df[ideas_df['Keyword'].str.lower().isin(missing_keywords)].copy()
-        log_message(f"{len(missing_keywords)} mots clés manquants détectés.")
+        log_message(f"{len(missing_keywords)} missing keywords detected.")
         return missing_df
     except Exception as e:
-        st.error(f"Erreur dans find_missing_keywords : {str(e)}")
-        log_message(f"Erreur : {str(e)}")
+        st.error(f"Error in find_missing_keywords: {str(e)}")
+        log_message(f"Error: {str(e)}")
         return pd.DataFrame()
+
 
 def find_common_keywords(positions_df, ideas_df):
     try:
-        log_message("Recherche des mots clés en commun...")
+        log_message("Searching for common keywords...")
         positions_keywords = set(positions_df['Keyword'].str.lower())
         ideas_keywords = set(ideas_df['Keyword'].str.lower())
         common_keywords = positions_keywords & ideas_keywords
 
         common_df = positions_df[positions_df['Keyword'].str.lower().isin(common_keywords)].copy()
-        log_message(f"{len(common_keywords)} mots clés en commun détectés.")
+        log_message(f"{len(common_keywords)} common keywords detected.")
         return common_df
     except Exception as e:
-        st.error(f"Erreur dans find_common_keywords : {str(e)}")
-        log_message(f"Erreur : {str(e)}")
+        st.error(f"Error in find_common_keywords: {str(e)}")
+        log_message(f"Error: {str(e)}")
         return pd.DataFrame()
+
 
 def apply_filters(df, position_ranges=None, kd_ranges=None):
     filtered_df = df.copy()
@@ -330,6 +338,7 @@ def apply_filters(df, position_ranges=None, kd_ranges=None):
 
     return filtered_df
 
+
 def apply_keyword_filters(df, include_pattern=None, exclude_pattern=None):
     filtered_df = df.copy()
 
@@ -337,58 +346,60 @@ def apply_keyword_filters(df, include_pattern=None, exclude_pattern=None):
         try:
             filtered_df = filtered_df[filtered_df['Keyword'].str.contains(include_pattern, case=False, regex=True)]
         except re.error:
-            st.error("Expression régulière d'inclusion invalide")
+            st.error("Invalid inclusion regex pattern")
             return df
 
     if exclude_pattern:
         try:
             filtered_df = filtered_df[~filtered_df['Keyword'].str.contains(exclude_pattern, case=False, regex=True)]
         except re.error:
-            st.error("Expression régulière d'exclusion invalide")
+            st.error("Invalid exclusion regex pattern")
             return df
 
     return filtered_df
 
+
 def sidebar_content():
-    st.sidebar.markdown("### 🎯 À propos de l'outil")
+    st.sidebar.markdown("### 🎯 About the Tool")
     st.sidebar.write("""
-    Cet outil vous aide à identifier rapidement les opportunités SEO en analysant vos données SEMrush.
+    This tool helps you quickly identify SEO opportunities by analyzing your SEMrush data.
     """)
 
-    st.sidebar.markdown("### 🔍 Fonctionnalités")
+    st.sidebar.markdown("### 🔍 Features")
     st.sidebar.markdown("""
-    - Identifie les mots clés non positionnés
-    - Affiche les mots clés en commun
-    - Analyse les métriques clés (Volume, KD, CPC)
-    - Export des résultats en CSV
-    - Support de multiples fichiers d'idées de mots clés
+    - Identifies non-ranking keywords
+    - Shows common keywords
+    - Analyzes key metrics (Volume, KD, CPC)
+    - Exports results to CSV
+    - Supports multiple keyword idea files
     """)
 
-    st.sidebar.markdown("### 📊 Comment utiliser l'outil")
+    st.sidebar.markdown("### 📊 How to Use the Tool")
     st.sidebar.markdown("""
-    1. Exportez vos données depuis SEMrush :
-        - Positions organiques actuelles
-        - Un ou plusieurs fichiers d'idées de mots clés (broad match)
-    2. Uploadez les fichiers CSV
-    3. Analysez les résultats
-    4. Utilisez les filtres pour affiner l'analyse
-    5. Exportez les données pour votre analyse
+    1. Export your data from SEMrush:
+        - Current organic positions
+        - One or more keyword idea files (broad match)
+    2. Upload the CSV files
+    3. Analyze the results
+    4. Use filters to refine your analysis
+    5. Export the data for your analysis
     """)
 
-    st.sidebar.markdown("### ℹ️ Formats acceptés")
+    st.sidebar.markdown("### ℹ️ Accepted Formats")
     st.sidebar.markdown("""
-    - Fichiers CSV avec séparateur point-virgule (;)
-    - Export standard SEMrush
+    - CSV files with semicolon separator (;)
+    - Standard SEMrush export
     """)
+
 
 # Main
-log_message("Démarrage de l'application.")
-st.title("🎯 Analyseur SEO")
+log_message("Starting application.")
+st.title("🎯 SEO Analyzer")
 
 sidebar_content()
 
-# Onglets principaux
-tabs = st.tabs(["Analyse", "Voir les logs"])
+# Main tabs
+tabs = st.tabs(["Analysis", "View Logs"])
 
 with tabs[0]:
     positions_file = st.file_uploader("Upload positions", type=["csv"])
@@ -399,61 +410,61 @@ with tabs[0]:
         ideas_df = load_multiple_semrush_ideas(ideas_files)
 
         if not positions_df.empty and not ideas_df.empty:
-            # Tableau 1 : Mots clés non positionnés
+            # Table 1: Non-ranking keywords
             missing_keywords = find_missing_keywords(positions_df, ideas_df)
-            st.subheader("📈 Mots clés non positionnés")
+            st.subheader("📈 Non-Ranking Keywords")
             st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
             include_pattern, exclude_pattern = st.columns(2)
             with include_pattern:
-                include_regex = st.text_input("Inclure (regex)", key="missing_include")
+                include_regex = st.text_input("Include (regex)", key="missing_include")
             with exclude_pattern:
-                exclude_regex = st.text_input("Exclure (regex)", key="missing_exclude")
+                exclude_regex = st.text_input("Exclude (regex)", key="missing_exclude")
 
             filtered_missing = apply_keyword_filters(missing_keywords, include_regex, exclude_regex)
             st.dataframe(filtered_missing)
             st.markdown('</div>', unsafe_allow_html=True)
             csv_missing = filtered_missing.to_csv(index=False, sep=';')
             st.download_button(
-                label="📥 Télécharger les mots clés non positionnés",
+                label="📥 Download Non-Ranking Keywords",
                 data=csv_missing,
-                file_name="mots_cles_non_positionnes.csv",
+                file_name="non_ranking_keywords.csv",
                 mime="text/csv"
             )
 
-            # Totaux dynamiques pour les mots clés non positionnés
+            # Dynamic totals for non-ranking keywords
             st.markdown(f'''
                 <div class="totals-container">
                     <div class="totals-card">
-                        <h3>Nombre de mots clés non positionnés</h3>
+                        <h3>Number of Non-Ranking Keywords</h3>
                         <p>{len(filtered_missing)}</p>
                     </div>
                     <div class="totals-card">
-                        <h3>Volume total</h3>
+                        <h3>Total Volume</h3>
                         <p>{filtered_missing['Volume'].sum()}</p>
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Tableau 2 : Mots clés en commun
+            # Table 2: Common keywords
             common_keywords = find_common_keywords(positions_df, ideas_df)
-            st.subheader("🎯 Mots clés en commun entre fichiers")
+            st.subheader("🎯 Common Keywords Between Files")
             st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
 
-            # Filtres pour les positions et KD
+            # Filters for positions and KD
             include_common, exclude_common = st.columns(2)
             with include_common:
-                include_regex_common = st.text_input("Inclure (regex)", key="common_include")
+                include_regex_common = st.text_input("Include (regex)", key="common_include")
             with exclude_common:
-                exclude_regex_common = st.text_input("Exclure (regex)", key="common_exclude")
+                exclude_regex_common = st.text_input("Exclude (regex)", key="common_exclude")
 
             position_ranges = st.multiselect(
-                "Sélectionnez les tranches de positions",
-                options=["1-3", "4-10", "11-20", "21-50", "51-100", "Autre"],
+                "Select position ranges",
+                options=["1-3", "4-10", "11-20", "21-50", "51-100", "Other"],
                 default=["1-3", "4-10"]
             )
 
             kd_ranges = st.multiselect(
-                "Sélectionnez les tranches de Keyword Difficulty",
+                "Select Keyword Difficulty ranges",
                 options=["0-15", "16-25", "26-35", "36-45", "46-55", "56-65", ">65"],
                 default=["0-15", "16-25"]
             )
@@ -464,35 +475,35 @@ with tabs[0]:
             st.markdown('</div>', unsafe_allow_html=True)
             csv_common = filtered_common.to_csv(index=False, sep=';')
             st.download_button(
-                label="📥 Télécharger les mots clés en commun",
+                label="📥 Download Common Keywords",
                 data=csv_common,
-                file_name="mots_cles_en_commun.csv",
+                file_name="common_keywords.csv",
                 mime="text/csv"
             )
 
-            # Totaux dynamiques pour les mots clés en commun
+            # Dynamic totals for common keywords
             st.markdown(f'''
                 <div class="totals-container">
                     <div class="totals-card">
-                        <h3>Nombre de mots clés à optimiser</h3>
+                        <h3>Number of Keywords to Optimize</h3>
                         <p>{len(filtered_common)}</p>
                     </div>
                     <div class="totals-card">
-                        <h3>Volume total des mots clés à optimiser</h3>
+                        <h3>Total Volume of Keywords to Optimize</h3>
                         <p>{filtered_common['Volume'].sum()}</p>
                     </div>
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Tableau 3 : Répartition par tranches
-            st.subheader("📊 Répartition des mots clés avec tranches de positions et KD")
+            # Table 3: Distribution by ranges
+            st.subheader("📊 Keyword Distribution by Position and KD Ranges")
             st.markdown('<div class="dataframe-container">', unsafe_allow_html=True)
 
             include_distribution, exclude_distribution = st.columns(2)
             with include_distribution:
-                include_regex_distribution = st.text_input("Inclure (regex)", key="distribution_include")
+                include_regex_distribution = st.text_input("Include (regex)", key="distribution_include")
             with exclude_distribution:
-                exclude_regex_distribution = st.text_input("Exclure (regex)", key="distribution_exclude")
+                exclude_regex_distribution = st.text_input("Exclude (regex)", key="distribution_exclude")
 
             filtered_df = apply_filters(positions_df, position_ranges, kd_ranges)
             filtered_df = apply_keyword_filters(filtered_df, include_regex_distribution, exclude_regex_distribution)
@@ -501,9 +512,9 @@ with tabs[0]:
             st.markdown('</div>', unsafe_allow_html=True)
             csv_filtered = filtered_df.to_csv(index=False, sep=';')
             st.download_button(
-                label="📥 Télécharger les mots clés filtrés",
+                label="📥 Download Filtered Keywords",
                 data=csv_filtered,
-                file_name="mots_cles_filtres.csv",
+                file_name="filtered_keywords.csv",
                 mime="text/csv"
             )
 
